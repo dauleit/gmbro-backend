@@ -47,6 +47,11 @@ export const ERROR_MESSAGES = {
       status: 400,
       code: 'INVALID_CREDENTIALS'
     },
+    INVALID_TOKEN: {
+      message: 'INVALID_TOKEN',
+      status: 401,
+      code: 'INVALID_TOKEN'
+    },
     USER_NOT_FOUND: {
       message: 'USER_NOT_FOUND',
       status: 400,

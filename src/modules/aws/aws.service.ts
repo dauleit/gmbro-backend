@@ -4,7 +4,7 @@ import { GeneratePresignedUrlDto } from './dto/generate-presigned-url.dto';
 import { IResponseData } from 'src/base/base-controller';
 import { randomUUID } from 'crypto';
 import { ConfigService } from 'src/configs/config.service';
-import { ERROR_MESSAGES } from 'src/common/constant';
+import { ERROR_MESSAGES } from 'src/common/constants/errorMessage';
 import { GenerateMultiPresignedUrlDto } from './dto/generate-multi-presigned-url.dto';
 
 @Injectable()

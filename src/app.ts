@@ -7,7 +7,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 
 import { AppModule } from './app.module';
 import { RedisIoAdapter } from './common/redis-adapter';
-import { AllExceptionsFilter } from './common/filters/all-exception.filter';
+import { AllExceptionFilter } from './common/filters/allException.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { CustomValidationPipe } from './common/pipes/validation-pipe';
 
@@ -52,7 +52,7 @@ export async function createApp(): Promise<NestExpressApplication> {
   app.use(bodyParser.urlencoded({ limit: '5mb', extended: true }));
 
   // Apply Global Exception Filters
-  app.useGlobalFilters(new AllExceptionsFilter());
+  app.useGlobalFilters(new AllExceptionFilter());
   // /** End Security **/
   // Swagger Documentation
   const options = new DocumentBuilder().setTitle('Base Project API').setDescription('Base Project API').setVersion('1').addBearerAuth().build();

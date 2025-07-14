@@ -4,7 +4,7 @@ import { BaseController } from 'src/base/base-controller';
 import { AwsService } from './aws.service';
 import { GeneratePresignedUrlDto } from './dto/generate-presigned-url.dto';
 import { Response } from 'express';
-import { ERROR_MESSAGES } from 'src/common/constant';
+import { ERROR_MESSAGES } from 'src/common/constants/errorMessage';
 import { GenerateMultiPresignedUrlDto } from './dto/generate-multi-presigned-url.dto';
 
 @ApiTags('AWS')

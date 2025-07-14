@@ -4,7 +4,7 @@ import { ConfigService } from 'src/configs/config.service';
 import { S3 } from 'aws-sdk';
 import { GeneratePresignedUrlDto } from '../dto/generate-presigned-url.dto';
 import { GenerateMultiPresignedUrlDto } from '../dto/generate-multi-presigned-url.dto';
-import { ERROR_MESSAGES } from 'src/common/constant';
+import { ERROR_MESSAGES } from 'src/common/constants/errorMessage';
 
 jest.mock('aws-sdk', () => {
   const mockS3 = {

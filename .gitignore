@@ -50,3 +50,5 @@ tags.lock
 tags.temp
 
 yarn.lock
+
+SOCIAL_LOGIN_SETUP.md

@@ -11,6 +11,7 @@ import { ConfigService } from './configs/config.service';
 import { AppSocketGateway } from './app.socket';
 import { AuthModule } from './modules/auth/auth.module';
 import { AwsModule } from './modules/aws/aws.module';
+import { UserModule } from './modules/user/user.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { AwsModule } from './modules/aws/aws.module';
 
     // Custom Modules
     AuthModule,
+    UserModule,
     AwsModule
   ],
   controllers: [AppController],
