@@ -50,7 +50,6 @@ export class AllExceptionFilter implements ExceptionFilter {
         data: null
       };
     }
-    console.log(message);
     // Format response to match BaseController format
     const errorResponse = {
       ...message,

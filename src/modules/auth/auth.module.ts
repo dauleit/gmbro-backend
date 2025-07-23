@@ -13,6 +13,8 @@ import { WalletModule } from '../wallet/wallet.module';
 
 import { AuthService } from './auth.service';
 import { JWTService } from './passport/jwt.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
 
 import { AuthController } from './auth.controller';
 import { ConfigService } from 'src/configs/config.service';
@@ -28,8 +30,8 @@ import { ConfigService } from 'src/configs/config.service';
     forwardRef(() => WalletModule)
   ],
   controllers: [AuthController],
-  providers: [AuthService, JWTService, JwtStrategy, ConfigService],
-  exports: [AuthService, JWTService, JwtStrategy]
+  providers: [AuthService, JWTService, JwtStrategy, ConfigService, JwtAuthGuard, RolesGuard],
+  exports: [AuthService, JWTService, JwtStrategy, JwtAuthGuard, RolesGuard]
 })
 export class AuthModule implements NestModule {
   public configure(consumer: MiddlewareConsumer) {

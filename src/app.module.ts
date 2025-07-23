@@ -12,6 +12,7 @@ import { AppSocketGateway } from './app.socket';
 import { AuthModule } from './modules/auth/auth.module';
 import { AwsModule } from './modules/aws/aws.module';
 import { UserModule } from './modules/user/user.module';
+import { TokenModule } from './modules/token/token.module';
 
 @Module({
   imports: [
@@ -29,7 +30,8 @@ import { UserModule } from './modules/user/user.module';
     // Custom Modules
     AuthModule,
     UserModule,
-    AwsModule
+    AwsModule,
+    TokenModule
   ],
   controllers: [AppController],
   providers: [ConfigService, AppService, AppSocketGateway]
