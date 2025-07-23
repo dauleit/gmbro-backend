@@ -57,24 +57,6 @@ export class UpdateUserDto {
   isActive?: boolean;
 
   @ApiProperty({
-    description: 'Email verification status',
-    example: true,
-    required: false
-  })
-  @IsBoolean()
-  @IsOptional()
-  isEmailVerified?: boolean;
-
-  @ApiProperty({
-    description: 'Phone verification status',
-    example: true,
-    required: false
-  })
-  @IsBoolean()
-  @IsOptional()
-  isPhoneVerified?: boolean;
-
-  @ApiProperty({
     description: 'User roles',
     example: ['user', 'admin'],
     required: false
@@ -91,4 +73,12 @@ export class UpdateUserDto {
   @IsObject()
   @IsOptional()
   metadata?: Record<string, any>;
+
+  circleUserId?: string;
+
+  circleUserToken?: string;
+
+  circleUserEncryptionKey?: string;
+
+  challengeId?: string;
 }

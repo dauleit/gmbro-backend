@@ -6,6 +6,13 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ConfigService } from 'src/configs/config.service';
 import { User, UserDocument } from '../../user/schemas/user.schema';
 
+interface TokenPayload {
+  sub: string; // userId
+  provider: string;
+  providerId: string;
+  timestamp: number;
+}
+
 @Injectable()
 export class JWTService {
   constructor(@InjectModel(User.name) private readonly userModel: Model<UserDocument>, private readonly configService: ConfigService) {}
@@ -34,19 +41,27 @@ export class JWTService {
   }
 
   /**
-   * Create access and refresh tokens
-   * @param payload JWT payload
+   * Create access and refresh tokens with new payload structure
+   * @param payload JWT payload containing userId, provider, providerId
    * @returns Object with access and refresh tokens
    */
-  async createToken(payload: any) {
+  async createToken(payload: { sub: string; provider: string; providerId: string }) {
     const accessTokenSecret = this.configService.get('ACCESS_TOKEN_SECRET') || 'access-secret';
     const refreshTokenSecret = this.configService.get('REFRESH_TOKEN_SECRET') || 'refresh-secret';
 
     const accessTokenExpiresIn = this.configService.get('ACCESS_TOKEN_EXPIRATION') || '1h';
     const refreshTokenExpiresIn = this.configService.get('REFRESH_TOKEN_EXPIRATION') || '7d';
 
-    const accessToken = jwt.sign(payload, accessTokenSecret, { expiresIn: accessTokenExpiresIn });
-    const refreshToken = jwt.sign(payload, refreshTokenSecret, { expiresIn: refreshTokenExpiresIn });
+    // Create payload with timestamp
+    const tokenPayload: TokenPayload = {
+      sub: payload.sub,
+      provider: payload.provider,
+      providerId: payload.providerId,
+      timestamp: Math.floor(Date.now() / 1000)
+    };
+
+    const accessToken = jwt.sign(tokenPayload, accessTokenSecret, { expiresIn: accessTokenExpiresIn });
+    const refreshToken = jwt.sign(tokenPayload, refreshTokenSecret, { expiresIn: refreshTokenExpiresIn });
 
     return {
       accessToken,

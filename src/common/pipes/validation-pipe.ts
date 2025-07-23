@@ -1,13 +1,14 @@
-import { Injectable, PipeTransform, ArgumentMetadata, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, PipeTransform, ArgumentMetadata, HttpException, HttpStatus } from '@nestjs/common';
 import { plainToClass } from 'class-transformer';
 import { validate } from 'class-validator';
 import { ERROR_MESSAGES } from '../constants/errorMessage';
+import { BadRequestException } from '../exceptions/bad-request.exception';
 
 @Injectable()
 export class CustomValidationPipe implements PipeTransform<any> {
   async transform(value, metadata: ArgumentMetadata) {
     if (!value) {
-      throw new BadRequestException('No request payload provided');
+      throw new BadRequestException({ message: ERROR_MESSAGES.common.BAD_REQUEST });
     }
 
     const { metatype } = metadata;
@@ -20,7 +21,7 @@ export class CustomValidationPipe implements PipeTransform<any> {
     const errors = await validate(object);
 
     if (errors.length > 0) {
-      throw new HttpException({ message: ERROR_MESSAGES.common.BAD_REQUEST.message, errors: errors }, HttpStatus.BAD_REQUEST);
+      throw new BadRequestException({ message: ERROR_MESSAGES.common.BAD_REQUEST, data: errors });
     }
 
     return value;

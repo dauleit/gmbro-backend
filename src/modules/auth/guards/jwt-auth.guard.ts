@@ -7,9 +7,9 @@ import { AuthService } from '../auth.service';
 import { ERROR_MESSAGES } from 'src/common/constants/errorMessage';
 
 export interface Token {
-  id: string;
-  phoneCode: string;
-  phoneNumber: string;
+  sub: string;
+  provider: string;
+  providerId: string;
   timestamp: number;
 }
 
@@ -61,8 +61,8 @@ export class JwtAuthGuard implements CanActivate {
     }
   }
 
-  private validate({ id }: Token) {
-    return true;
+  private validate({ sub }: Token) {
+    return this.authService.findUserById(sub);
   }
 
   private getToken(ctx: ExecutionContext, client: Client): string {

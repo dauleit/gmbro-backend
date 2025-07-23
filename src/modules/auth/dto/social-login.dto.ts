@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsEnum } from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum, IsOptional } from 'class-validator';
 
 export enum SocialProvider {
   TELEGRAM = 'telegram',
@@ -90,7 +90,17 @@ export class GmailLoginDto {
   })
   @IsString()
   @IsNotEmpty()
-  accessToken: string;
+  @IsOptional()
+  accessToken?: string;
+
+  @ApiProperty({
+    description: 'Gmail OAuth id token',
+    example: 'abc123def456'
+  })
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  idToken?: string;
 
   @ApiProperty()
   userInfo: {

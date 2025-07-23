@@ -10,7 +10,6 @@ export class SynchronousRequestInterceptor implements NestInterceptor {
     return next.handle().pipe(
       map((data) => {
         // Xử lý sau khi request đã được xử lý
-        console.log('After handling the request synchronously...');
         return data;
       })
     );

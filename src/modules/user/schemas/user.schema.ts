@@ -23,6 +23,18 @@ export class User {
   @Prop({ required: true })
   providerId: string;
 
+  @Prop()
+  circleUserId?: string;
+
+  @Prop()
+  circleUserToken?: string;
+
+  @Prop()
+  circleUserEncryptionKey?: string;
+
+  @Prop()
+  challengeId?: string;
+
   @Prop({ default: true })
   isActive: boolean;
 
@@ -47,4 +59,5 @@ export const UserSchema = SchemaFactory.createForClass(User);
 // Indexes
 UserSchema.index({ provider: 1, providerId: 1 }, { unique: true });
 UserSchema.index({ email: 1 });
+
 UserSchema.index({ createdAt: -1 });

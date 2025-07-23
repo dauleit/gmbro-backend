@@ -52,15 +52,45 @@ export const ERROR_MESSAGES = {
       status: 401,
       code: 'INVALID_TOKEN'
     },
+    TOKEN_EXPIRED: {
+      message: 'TOKEN_EXPIRED',
+      status: 401,
+      code: 'TOKEN_EXPIRED'
+    },
     USER_NOT_FOUND: {
       message: 'USER_NOT_FOUND',
       status: 400,
       code: 'USER_NOT_FOUND'
     },
+    USER_INACTIVE: {
+      message: 'USER_INACTIVE',
+      status: 401,
+      code: 'USER_INACTIVE'
+    },
     EMAIL_EXISTS: {
       message: 'EMAIL_EXISTS',
       status: 400,
       code: 'EMAIL_EXISTS'
+    },
+    INVALID_GOOGLE_USER_INFO: {
+      message: 'INVALID_GOOGLE_USER_INFO',
+      status: 401,
+      code: 'INVALID_GOOGLE_USER_INFO'
+    },
+    INVALID_GOOGLE_ACCESS_TOKEN: {
+      message: 'INVALID_GOOGLE_ACCESS_TOKEN',
+      status: 401,
+      code: 'INVALID_GOOGLE_ACCESS_TOKEN'
+    },
+    TELEGRAM_AUTH_DATA_EXPIRED: {
+      message: 'TELEGRAM_AUTH_DATA_EXPIRED',
+      status: 401,
+      code: 'TELEGRAM_AUTH_DATA_EXPIRED'
+    },
+    INVALID_TELEGRAM_DATA_HASH: {
+      message: 'INVALID_TELEGRAM_DATA_HASH',
+      status: 401,
+      code: 'INVALID_TELEGRAM_DATA_HASH'
     }
   },
   user: {
@@ -88,6 +118,33 @@ export const ERROR_MESSAGES = {
       message: 'USER_ALREADY_VERIFIED',
       status: 400,
       code: 'USER_ALREADY_VERIFIED'
+    }
+  },
+  wallet: {
+    USER_ALREADY_HAS_WALLET: {
+      message: 'USER_ALREADY_HAS_WALLET',
+      status: 400,
+      code: 'USER_ALREADY_HAS_WALLET'
+    },
+    WALLET_NOT_FOUND: {
+      message: 'WALLET_NOT_FOUND',
+      status: 404,
+      code: 'WALLET_NOT_FOUND'
+    },
+    CREATE_WALLET_FAILED: {
+      message: 'CREATE_WALLET_FAILED',
+      status: 400,
+      code: 'CREATE_WALLET_FAILED'
+    },
+    WALLET_IS_EXISTED: {
+      message: 'WALLET_IS_EXISTED',
+      status: 400,
+      code: 'WALLET_IS_EXISTED'
+    },
+    WALLET_IS_NOT_CREATED: {
+      message: 'WALLET_IS_NOT_CREATED',
+      status: 400,
+      code: 'WALLET_IS_NOT_CREATED'
     }
   }
 };

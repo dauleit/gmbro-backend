@@ -46,4 +46,11 @@ export class BaseController {
       data: data.data || null
     });
   }
+
+  responseError(@Res() res: Response, data: IResponseData) {
+    if (data.message.status !== HttpStatus.INTERNAL_SERVER_ERROR) {
+      return this.responseBadRequest(res, data);
+    }
+    return this.responseInternalServerError(res, data);
+  }
 }

@@ -6,15 +6,20 @@ import { IUser } from './interfaces/user.interface';
 import { CreateUserDto } from './dto/createUser.dto';
 import { UpdateUserDto } from './dto/updateUser.dto';
 import { QueryUserDto } from './dto/queryUser.dto';
+import { ConfigService } from 'src/configs/config.service';
 
 @Injectable()
 export class UserService {
   private readonly logger = new Logger(UserService.name);
 
-  constructor(@InjectModel(User.name) private readonly userModel: Model<UserDocument>) {}
+  constructor(@InjectModel(User.name) private readonly userModel: Model<UserDocument>, private readonly configService: ConfigService) {}
 
   async findByProvider(provider: string, providerId: string): Promise<IUser | null> {
     return this.userModel.findOne({ provider, providerId }).exec();
+  }
+
+  async findOneById(userId: string): Promise<IUser | null> {
+    return this.userModel.findById(userId).exec();
   }
 
   async updateLastLogin(userId: string): Promise<void> {
@@ -30,7 +35,15 @@ export class UserService {
   }
 
   async create(createUserDto: CreateUserDto): Promise<IUser> {
-    const newUser = new this.userModel(createUserDto);
-    return newUser.save();
+    try {
+      // Create user in database
+      const newUser = new this.userModel(createUserDto);
+      const savedUser = await newUser.save();
+
+      return savedUser;
+    } catch (error) {
+      this.logger.error('Error creating user:', error);
+      throw new BadRequestException('Failed to create user');
+    }
   }
 }

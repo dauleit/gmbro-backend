@@ -1,16 +1,17 @@
 import { JWTService } from './passport/jwt.service';
-import { InjectModel } from '@nestjs/mongoose';
-import { Injectable, Logger, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from 'src/configs/config.service';
-import * as jwt from 'jsonwebtoken';
-import { Model } from 'mongoose';
 import { SocialLoginDto, SocialProvider, TelegramLoginDto, XLoginDto, GmailLoginDto } from './dto/social-login.dto';
 import { SocialUser, TelegramUser, XUser, GmailUser } from './interfaces/socialUser.interface';
 import { UserService } from '../user/user.service';
 import { firstValueFrom } from 'rxjs';
 import * as crypto from 'crypto';
 import { ERROR_MESSAGES } from 'src/common/constants/errorMessage';
+import { circleUserSdk } from 'src/common/modules/circle/circle.service';
+import { WalletService } from '../wallet/wallet.service';
+import { OAuth2Client } from 'google-auth-library';
+import { UnauthorizedException } from 'src/common/exceptions/unauthorized.exception';
 
 interface JwtPayload {
   phoneCode: string;
@@ -28,13 +29,18 @@ export class AuthService {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
     private readonly jwtService: JWTService,
-    private readonly userService: UserService
+    private readonly userService: UserService,
+    private readonly walletService: WalletService
   ) {
     this.logger.log('AuthService constructor');
   }
 
   async checkIsExistedToken(token: string): Promise<boolean> {
     return true;
+  }
+
+  async findUserById(userId: string) {
+    return await this.userService.findOneById(userId);
   }
 
   async socialLogin(socialLoginDto: SocialLoginDto) {
@@ -66,10 +72,9 @@ export class AuthService {
 
     // Generate JWT tokens using jwtService
     const tokens = await this.jwtService.createToken({
-      sub: socialUser.id,
-      email: socialUser.email,
-      provider: socialUser.provider,
-      providerId: socialUser.providerId
+      sub: user._id.toString(),
+      provider: user.provider,
+      providerId: user.providerId
     });
 
     const result = {
@@ -111,14 +116,18 @@ export class AuthService {
       const hash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
       if (hash !== telegramData.hash) {
-        throw new UnauthorizedException('Invalid Telegram data hash');
+        throw new UnauthorizedException({
+          message: ERROR_MESSAGES.auth.INVALID_TELEGRAM_DATA_HASH
+        });
       }
 
       // Check if authDate is not too old (within 1 hour)
       const authDate = parseInt(telegramData.authDate);
       const currentTime = Math.floor(Date.now() / 1000);
       if (currentTime - authDate > 3600) {
-        throw new UnauthorizedException('Telegram auth data expired');
+        throw new UnauthorizedException({
+          message: ERROR_MESSAGES.auth.TELEGRAM_AUTH_DATA_EXPIRED
+        });
       }
 
       return {
@@ -188,32 +197,52 @@ export class AuthService {
       };
     } catch (error) {
       this.logger.error('X (Twitter) validation failed:', error);
-      throw new UnauthorizedException('Invalid X (Twitter) credentials');
+      throw new UnauthorizedException({
+        message: ERROR_MESSAGES.common.UNAUTHORIZED_ACCESS_DENIED
+      });
     }
   }
 
   async validateGmailLogin(gmailData: GmailLoginDto): Promise<SocialUser> {
     try {
-      const { accessToken, userInfo } = gmailData;
+      const { accessToken, idToken, userInfo } = gmailData;
 
       // Validate access token by making a request to Google API
       try {
-        const userResponse = await firstValueFrom(
-          this.httpService.get('https://www.googleapis.com/oauth2/v2/userinfo', {
-            headers: {
-              Authorization: `Bearer ${accessToken}`
-            }
-          })
-        );
-
-        // Verify that the user info matches what was provided
-        const googleUserData = userResponse.data;
-        if (googleUserData.id !== userInfo.id || googleUserData.email !== userInfo.email) {
-          throw new UnauthorizedException('Invalid Google user information');
+        if (accessToken) {
+          const userResponse = await firstValueFrom(
+            this.httpService.get('https://www.googleapis.com/oauth2/v2/userinfo', {
+              headers: {
+                Authorization: `Bearer ${accessToken}`
+              }
+            })
+          );
+          // Verify that the user info matches what was provided
+          const googleUserData = userResponse.data;
+          if (googleUserData.id !== userInfo.id || googleUserData.email !== userInfo.email) {
+            throw new UnauthorizedException({
+              message: ERROR_MESSAGES.auth.INVALID_GOOGLE_USER_INFO
+            });
+          }
+        }
+        if (idToken) {
+          const client = new OAuth2Client(this.configService.get('GOOGLE_CLIENT_ID'));
+          const ticket = await client.verifyIdToken({
+            idToken: idToken,
+            audience: this.configService.get('GOOGLE_CLIENT_ID')
+          });
+          const payload = ticket.getPayload();
+          if (payload.sub !== userInfo.id || payload.email !== userInfo.email) {
+            throw new UnauthorizedException({
+              message: ERROR_MESSAGES.auth.INVALID_GOOGLE_USER_INFO
+            });
+          }
         }
       } catch (error) {
         this.logger.error('Google token validation failed:', error);
-        throw new UnauthorizedException('Invalid Google access token');
+        throw new UnauthorizedException({
+          message: ERROR_MESSAGES.auth.INVALID_GOOGLE_ACCESS_TOKEN
+        });
       }
 
       return {
@@ -242,6 +271,20 @@ export class AuthService {
 
         // Update user info if needed (avatar, email, etc.)
         const updateData: any = {};
+        const userWallet = await this.walletService.findByUser(existingUser._id.toString());
+
+        if (!userWallet) {
+          const circleUserId = crypto.randomUUID();
+          await circleUserSdk.createUser({ userId: circleUserId });
+          const circleUserToken = await circleUserSdk.createUserToken({ userId: circleUserId });
+          const userToken = circleUserToken.data.userToken;
+          const encryptionKey = circleUserToken.data.encryptionKey;
+
+          updateData.circleUserId = circleUserId;
+          updateData.circleUserToken = userToken;
+          updateData.circleUserEncryptionKey = encryptionKey;
+        }
+
         if (socialUser.avatar && socialUser.avatar !== existingUser.avatar) {
           updateData.avatar = socialUser.avatar;
         }
@@ -258,6 +301,11 @@ export class AuthService {
 
         return existingUser;
       }
+      const circleUserId = crypto.randomUUID();
+      await circleUserSdk.createUser({ userId: circleUserId });
+      const circleUserToken = await circleUserSdk.createUserToken({ userId: circleUserId });
+      const userToken = circleUserToken.data.userToken;
+      const encryptionKey = circleUserToken.data.encryptionKey;
 
       // Create new user
       const createUserDto = {
@@ -269,6 +317,9 @@ export class AuthService {
         providerId: socialUser.providerId,
         roles: ['user'],
         isActive: true,
+        circleUserId: circleUserId,
+        circleUserToken: userToken,
+        circleUserEncryptionKey: encryptionKey,
         metadata: {
           socialProvider: socialUser.provider,
           socialProviderId: socialUser.providerId,
