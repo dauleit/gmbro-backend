@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { ICoinGeckoTokenResponse } from './interfaces/coingecko.interface';
 import { ICoinGeckoRawResponse } from './interfaces/coingecko-raw.interface';
 import { CreateTokenDto } from './dto/create-token.dto';
+import { IPriceData } from './interfaces/token.interface';
 
 @Injectable()
 export class CoinGeckoService {
@@ -217,5 +218,51 @@ export class CoinGeckoService {
     const tokenDto = this.mapToCreateTokenDto(coingeckoData);
     tokenDto.contractAddress = contractAddress.toLowerCase();
     return tokenDto;
+  }
+
+  async getPriceData(contractAddressOrSymbol: string): Promise<IPriceData | null> {
+    try {
+      // If it's a contract address, use token price endpoint
+      if (contractAddressOrSymbol.startsWith('0x')) {
+        const url = `${this.configService.get(
+          'COINGECKO_API_URL'
+        )}/simple/token_price/ethereum?contract_addresses=${contractAddressOrSymbol}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`;
+        const response = await firstValueFrom(this.httpService.get(url));
+
+        const tokenData = response.data[contractAddressOrSymbol.toLowerCase()];
+        if (!tokenData) return null;
+
+        return {
+          currentPrice: tokenData.usd || 0,
+          priceChange24h: tokenData.usd_24h_change || 0,
+          priceChangePercentage24h: tokenData.usd_24h_change || 0,
+          marketCap: tokenData.usd_market_cap || 0,
+          volume24h: tokenData.usd_24h_vol || 0,
+          timestamp: new Date()
+        };
+      } else {
+        // If it's a symbol or coin ID, use regular price endpoint
+        const url = `${this.configService.get(
+          'COINGECKO_API_URL'
+        )}/simple/price?ids=${contractAddressOrSymbol}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`;
+        const response = await firstValueFrom(this.httpService.get(url));
+
+        if (response.data && Object.keys(response.data).length > 0) {
+          const data = Object.values(response.data)[0] as any;
+          return {
+            currentPrice: data.usd || 0,
+            priceChange24h: data.usd_24h_change || 0,
+            priceChangePercentage24h: data.usd_24h_change || 0,
+            marketCap: data.usd_market_cap || 0,
+            volume24h: data.usd_24h_vol || 0,
+            timestamp: new Date()
+          };
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error(`Error fetching price data for ${contractAddressOrSymbol}:`, error);
+      return null;
+    }
   }
 }

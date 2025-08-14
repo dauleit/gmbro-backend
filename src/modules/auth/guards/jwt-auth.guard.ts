@@ -79,7 +79,6 @@ export class JwtAuthGuard implements CanActivate {
     if (!authorization[1]) {
       this.throwException(ctx, ERROR_MESSAGES.auth.INVALID_CREDENTIALS.message);
     }
-
     return authorization[1];
   }
 

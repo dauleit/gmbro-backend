@@ -10,8 +10,9 @@ export interface IToken {
   iconUrl?: string;
   iconInitials?: string;
   priceHistory: number[];
-  priceHistoryDates: Date[];
+  priceHistoryTimes: Date[];
   isActive: boolean;
+  isFeatured: boolean;
   marketCap: number;
   volume24h: number;
   circulatingSupply: number;
@@ -42,9 +43,18 @@ export interface ITokenPriceData {
   timestamp: Date;
 }
 
+export interface IPriceData {
+  currentPrice: number;
+  priceChange24h: number;
+  priceChangePercentage24h: number;
+  marketCap: number;
+  volume24h: number;
+  timestamp: Date;
+}
+
 export interface ITokenChartData {
   symbol: string;
   prices: number[];
-  dates: Date[];
+  times: Date[];
   period: string; // 1h, 24h, 7d, 30d, 1y
 }

@@ -55,6 +55,48 @@ export class TokenController extends BaseController {
     }
   }
 
+  @Get('/top')
+  @ApiOperation({ summary: 'Get top tokens by market cap' })
+  @ApiQuery({ name: 'limit', description: 'Number of tokens to return (get all if not provided)', required: false })
+  @ApiResponse({ status: 200, description: 'Top tokens retrieved successfully' })
+  async getTopTokens(@Res() res: Response, @Query('limit') limit?: string) {
+    try {
+      const limitNumber = limit ? parseInt(limit) : undefined;
+      const response = await this.tokenService.getTopTokens(limitNumber);
+      return this.responseSuccess(res, response);
+    } catch (error) {
+      return this.responseError(res, error.response);
+    }
+  }
+
+  @Get('/trending')
+  @ApiOperation({ summary: 'Get trending tokens by 24h price change' })
+  @ApiQuery({ name: 'limit', description: 'Number of tokens to return (get all if not provided)', required: false })
+  @ApiResponse({ status: 200, description: 'Trending tokens retrieved successfully' })
+  async getTrendingTokens(@Res() res: Response, @Query('limit') limit?: string) {
+    try {
+      const limitNumber = limit ? parseInt(limit) : undefined;
+      const response = await this.tokenService.getTrendingTokens(limitNumber);
+      return this.responseSuccess(res, response);
+    } catch (error) {
+      return this.responseError(res, error.response);
+    }
+  }
+
+  @Get('/featured')
+  @ApiOperation({ summary: 'Get featured tokens' })
+  @ApiQuery({ name: 'limit', description: 'Number of tokens to return (get all if not provided)', required: false })
+  @ApiResponse({ status: 200, description: 'Featured tokens retrieved successfully' })
+  async getFeaturedTokens(@Res() res: Response, @Query('limit') limit?: string) {
+    try {
+      const limitNumber = limit ? parseInt(limit) : undefined;
+      const response = await this.tokenService.getFeaturedTokens(limitNumber);
+      return this.responseSuccess(res, response);
+    } catch (error) {
+      return this.responseError(res, error.response);
+    }
+  }
+
   @Get('/:id')
   @ApiOperation({ summary: 'Get a token by ID' })
   @ApiParam({ name: 'id', description: 'Token ID' })
@@ -125,34 +167,7 @@ export class TokenController extends BaseController {
       const response = await this.tokenService.fetchAndSaveTokenFromCoinGecko(fetchTokenDto.coinId, fetchTokenDto.contractAddress);
       return this.responseCreated(res, response);
     } catch (error) {
-      return this.responseError(res, error.response);
-    }
-  }
-
-  @Get('/top/:limit?')
-  @ApiOperation({ summary: 'Get top tokens by market cap' })
-  @ApiParam({ name: 'limit', description: 'Number of tokens to return (default: 10)', required: false })
-  @ApiResponse({ status: 200, description: 'Top tokens retrieved successfully' })
-  async getTopTokens(@Res() res: Response, @Param('limit') limit?: string) {
-    try {
-      const limitNumber = limit ? parseInt(limit) : 10;
-      const response = await this.tokenService.getTopTokens(limitNumber);
-      return this.responseSuccess(res, response);
-    } catch (error) {
-      return this.responseError(res, error.response);
-    }
-  }
-
-  @Get('/trending/:limit?')
-  @ApiOperation({ summary: 'Get trending tokens by 24h price change' })
-  @ApiParam({ name: 'limit', description: 'Number of tokens to return (default: 10)', required: false })
-  @ApiResponse({ status: 200, description: 'Trending tokens retrieved successfully' })
-  async getTrendingTokens(@Res() res: Response, @Param('limit') limit?: string) {
-    try {
-      const limitNumber = limit ? parseInt(limit) : 10;
-      const response = await this.tokenService.getTrendingTokens(limitNumber);
-      return this.responseSuccess(res, response);
-    } catch (error) {
+      console.log({ error });
       return this.responseError(res, error.response);
     }
   }

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { Token, TokenDocument } from './schemas/token.schema';
 import { CreateTokenDto } from './dto/create-token.dto';
 import { UpdateTokenDto } from './dto/update-token.dto';
@@ -146,11 +147,11 @@ export class TokenService {
 
     // Add to price history (keep last 1000 entries)
     token.priceHistory.push(priceData.currentPrice);
-    token.priceHistoryDates.push(priceData.timestamp);
+    token.priceHistoryTimes.push(priceData.timestamp);
 
     if (token.priceHistory.length > 1000) {
       token.priceHistory = token.priceHistory.slice(-1000);
-      token.priceHistoryDates = token.priceHistoryDates.slice(-1000);
+      token.priceHistoryTimes = token.priceHistoryTimes.slice(-1000);
     }
 
     const updatedToken = await token.save();
@@ -176,33 +177,33 @@ export class TokenService {
     // Filter data based on period
     const now = new Date();
     let filteredPrices: number[] = [];
-    let filteredDates: Date[] = [];
+    let filteredTimes: Date[] = [];
 
     switch (period) {
       case '1h':
         const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-        filteredPrices = token.priceHistory.filter((_, index) => token.priceHistoryDates[index] >= oneHourAgo);
-        filteredDates = token.priceHistoryDates.filter((date) => date >= oneHourAgo);
+        filteredPrices = token.priceHistory.filter((_, index) => token.priceHistoryTimes[index] >= oneHourAgo);
+        filteredTimes = token.priceHistoryTimes.filter((time) => time >= oneHourAgo);
         break;
       case '7d':
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        filteredPrices = token.priceHistory.filter((_, index) => token.priceHistoryDates[index] >= sevenDaysAgo);
-        filteredDates = token.priceHistoryDates.filter((date) => date >= sevenDaysAgo);
+        filteredPrices = token.priceHistory.filter((_, index) => token.priceHistoryTimes[index] >= sevenDaysAgo);
+        filteredTimes = token.priceHistoryTimes.filter((time) => time >= sevenDaysAgo);
         break;
       case '30d':
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        filteredPrices = token.priceHistory.filter((_, index) => token.priceHistoryDates[index] >= thirtyDaysAgo);
-        filteredDates = token.priceHistoryDates.filter((date) => date >= thirtyDaysAgo);
+        filteredPrices = token.priceHistory.filter((_, index) => token.priceHistoryTimes[index] >= thirtyDaysAgo);
+        filteredTimes = token.priceHistoryTimes.filter((time) => time >= thirtyDaysAgo);
         break;
       case '1y':
         const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-        filteredPrices = token.priceHistory.filter((_, index) => token.priceHistoryDates[index] >= oneYearAgo);
-        filteredDates = token.priceHistoryDates.filter((date) => date >= oneYearAgo);
+        filteredPrices = token.priceHistory.filter((_, index) => token.priceHistoryTimes[index] >= oneYearAgo);
+        filteredTimes = token.priceHistoryTimes.filter((time) => time >= oneYearAgo);
         break;
       default: // 24h
         const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        filteredPrices = token.priceHistory.filter((_, index) => token.priceHistoryDates[index] >= oneDayAgo);
-        filteredDates = token.priceHistoryDates.filter((date) => date >= oneDayAgo);
+        filteredPrices = token.priceHistory.filter((_, index) => token.priceHistoryTimes[index] >= oneDayAgo);
+        filteredTimes = token.priceHistoryTimes.filter((time) => time >= oneDayAgo);
         break;
     }
 
@@ -211,14 +212,20 @@ export class TokenService {
       data: {
         symbol: token.symbol,
         prices: filteredPrices,
-        dates: filteredDates,
+        times: filteredTimes,
         period
       }
     };
   }
 
-  async getTopTokens(limit = 10): Promise<IResponseData> {
-    const tokens = await this.tokenModel.find({ isActive: true }).sort({ marketCap: -1 }).limit(limit).exec();
+  async getTopTokens(limit?: number): Promise<IResponseData> {
+    const query = this.tokenModel.find({ isActive: true }).sort({ marketCap: -1 });
+
+    if (limit) {
+      query.limit(limit);
+    }
+
+    const tokens = await query.exec();
 
     return {
       message: ERROR_MESSAGES.common.SUCCESSFUL,
@@ -226,8 +233,29 @@ export class TokenService {
     };
   }
 
-  async getTrendingTokens(limit = 10): Promise<IResponseData> {
-    const tokens = await this.tokenModel.find({ isActive: true }).sort({ priceChangePercentage24h: -1 }).limit(limit).exec();
+  async getTrendingTokens(limit?: number): Promise<IResponseData> {
+    const query = this.tokenModel.find({ isActive: true }).sort({ priceChangePercentage24h: -1 });
+
+    if (limit) {
+      query.limit(limit);
+    }
+
+    const tokens = await query.exec();
+
+    return {
+      message: ERROR_MESSAGES.common.SUCCESSFUL,
+      data: { tokens: tokens.map((token) => this.mapToResponse(token)) }
+    };
+  }
+
+  async getFeaturedTokens(limit?: number): Promise<IResponseData> {
+    const query = this.tokenModel.find({ isActive: true, isFeatured: true }).sort({ marketCap: -1 });
+
+    if (limit) {
+      query.limit(limit);
+    }
+
+    const tokens = await query.exec();
 
     return {
       message: ERROR_MESSAGES.common.SUCCESSFUL,
@@ -267,9 +295,39 @@ export class TokenService {
       if (error instanceof BadRequestException) {
         throw error;
       }
+      console.log('Error fetching token from CoinGecko:', error);
       throw new BadRequestException({
         message: ERROR_MESSAGES.common.BAD_REQUEST
       });
+    }
+  }
+
+  async updateAllTokenPrices(): Promise<void> {
+    try {
+      const tokens = await this.tokenModel.find({ isActive: true }).exec();
+
+      for (const token of tokens) {
+        try {
+          // Get price data from CoinGecko using contract address or symbol
+          const priceData = await this.coinGeckoService.getPriceData(token.contractAddress || token.symbol);
+
+          if (priceData) {
+            await this.updatePriceData(token.symbol, {
+              symbol: token.symbol,
+              currentPrice: priceData.currentPrice,
+              priceChange24h: priceData.priceChange24h,
+              priceChangePercentage24h: priceData.priceChangePercentage24h,
+              marketCap: priceData.marketCap,
+              volume24h: priceData.volume24h,
+              timestamp: priceData.timestamp
+            });
+          }
+        } catch (error) {
+          console.error(`Error updating price for token ${token.symbol}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error('Error in updateAllTokenPrices:', error);
     }
   }
 
@@ -286,8 +344,9 @@ export class TokenService {
       iconUrl: token.iconUrl,
       iconInitials: token.iconInitials,
       priceHistory: token.priceHistory,
-      priceHistoryDates: token.priceHistoryDates,
+      priceHistoryTimes: token.priceHistoryTimes,
       isActive: token.isActive,
+      isFeatured: token.isFeatured,
       marketCap: token.marketCap,
       volume24h: token.volume24h,
       circulatingSupply: token.circulatingSupply,
@@ -297,5 +356,19 @@ export class TokenService {
       createdAt: token.createdAt,
       updatedAt: token.updatedAt
     };
+  }
+
+  // Cron job: Run every 5 minutes
+  @Cron('*/5 * * * *')
+  async updateTokenPricesCron() {
+    console.log('Updating token prices cron job');
+    await this.updateAllTokenPrices();
+  }
+
+  // Cron job: Run every hour for more comprehensive updates
+  @Cron(CronExpression.EVERY_HOUR)
+  async comprehensiveTokenUpdateCron() {
+    // You can add additional logic here for hourly updates
+    // Like updating token metadata, verifying contracts, etc.
   }
 }

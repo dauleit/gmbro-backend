@@ -40,10 +40,13 @@ export class Token {
   priceHistory: number[]; // Array of historical prices for chart
 
   @Prop({ type: [Date], default: [] })
-  priceHistoryDates: Date[]; // Corresponding dates for price history
+  priceHistoryTimes: Date[]; // Corresponding times for price history
 
   @Prop({ default: true })
   isActive: boolean; // Whether token is active for trading
+
+  @Prop({ default: false })
+  isFeatured: boolean; // Whether token is featured/promoted
 
   @Prop({ default: 0 })
   marketCap: number; // Market capitalization

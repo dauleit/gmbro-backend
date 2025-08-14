@@ -174,6 +174,15 @@ export class CreateTokenDto {
   isActive?: boolean;
 
   @ApiPropertyOptional({
+    description: 'Featured status of the token',
+    example: false,
+    default: false
+  })
+  @IsOptional()
+  @IsBoolean()
+  isFeatured?: boolean;
+
+  @ApiPropertyOptional({
     description: 'Market cap (USD)',
     example: 95000000000
   })

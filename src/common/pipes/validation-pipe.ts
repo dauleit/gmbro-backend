@@ -7,13 +7,15 @@ import { BadRequestException } from '../exceptions/bad-request.exception';
 @Injectable()
 export class CustomValidationPipe implements PipeTransform<any> {
   async transform(value, metadata: ArgumentMetadata) {
-    if (!value) {
-      throw new BadRequestException({ message: ERROR_MESSAGES.common.BAD_REQUEST });
-    }
-
     const { metatype } = metadata;
 
+    // Skip validation for primitive types and undefined/null values
     if (!metatype || !this.toValidate(metatype)) {
+      return value;
+    }
+
+    // Only validate if value exists (for optional parameters)
+    if (value === undefined || value === null) {
       return value;
     }
 
