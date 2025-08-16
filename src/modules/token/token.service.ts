@@ -359,7 +359,7 @@ export class TokenService {
   }
 
   // Cron job: Run every 5 minutes
-  @Cron('*/5 * * * *')
+  @Cron('0 * * * *')
   async updateTokenPricesCron() {
     console.log('Updating token prices cron job');
     await this.updateAllTokenPrices();

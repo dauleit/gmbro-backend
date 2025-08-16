@@ -10,6 +10,7 @@ import { RedisIoAdapter } from './common/redis-adapter';
 import { AllExceptionFilter } from './common/filters/allException.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { CustomValidationPipe } from './common/pipes/validation-pipe';
+import { raw } from 'express';
 
 export async function createApp(): Promise<NestExpressApplication> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -34,7 +35,8 @@ export async function createApp(): Promise<NestExpressApplication> {
       }
     })
   );
-
+  // Với Stripe webhook thì cần raw body
+  app.use('/api/v1/payment/callback', raw({ type: 'application/json' }));
   // Add a route prefix 'api'
   app.setGlobalPrefix('api');
 

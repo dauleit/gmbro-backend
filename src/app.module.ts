@@ -10,9 +10,10 @@ import { ConfigService } from './configs/config.service';
 
 import { AppSocketGateway } from './app.socket';
 import { AuthModule } from './modules/auth/auth.module';
-import { AwsModule } from './modules/aws/aws.module';
 import { UserModule } from './modules/user/user.module';
 import { TokenModule } from './modules/token/token.module';
+import { AwsModule } from './modules/aws/aws.module';
+import { PaymentModule } from './modules/payment/payment.module';
 
 @Module({
   imports: [
@@ -30,8 +31,9 @@ import { TokenModule } from './modules/token/token.module';
     // Custom Modules
     AuthModule,
     UserModule,
+    TokenModule,
     AwsModule,
-    TokenModule
+    PaymentModule
   ],
   controllers: [AppController],
   providers: [ConfigService, AppService, AppSocketGateway]
