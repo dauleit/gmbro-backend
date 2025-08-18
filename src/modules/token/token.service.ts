@@ -295,7 +295,6 @@ export class TokenService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.log('Error fetching token from CoinGecko:', error);
       throw new BadRequestException({
         message: ERROR_MESSAGES.common.BAD_REQUEST
       });

@@ -9,6 +9,7 @@ import { CurrentUser } from '../../common/decorators/current-user';
 import { JwtPayload } from '../auth/interfaces/jwtPayload.interface';
 import { BaseController } from '../../base/base-controller';
 import { ERROR_MESSAGES } from '../../common/constants/errorMessage';
+import { IUser } from '../user/interfaces/user.interface';
 
 @ApiTags('Payment')
 @Controller({
@@ -29,22 +30,23 @@ export class PaymentController extends BaseController {
   @ApiResponse({ status: 201, description: 'Checkout session created successfully' })
   @ApiResponse({ status: 400, description: 'Invalid data' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async createCheckoutSession(@Body() createCheckoutDto: CreateCheckoutDto, @CurrentUser() user: JwtPayload, @Res() res: Response) {
+  async createCheckoutSession(@Body() createCheckoutDto: CreateCheckoutDto, @CurrentUser() user: IUser, @Res() res: Response) {
     try {
-      const result = await this.paymentService.createCheckoutSession(createCheckoutDto, user.email);
+      const result = await this.paymentService.createCheckoutSession(createCheckoutDto, user.id);
       return this.responseCreated(res, result);
     } catch (error) {
       return this.responseError(res, error.response);
     }
   }
 
-  @Post('webhook')
+  @Post('callback')
   @ApiOperation({ summary: 'Webhook endpoint to receive Stripe notifications' })
   @ApiResponse({ status: 200, description: 'Webhook processed successfully' })
   @ApiResponse({ status: 400, description: 'Webhook signature verification failed' })
-  async handleWebhook(@Req() request: RawBodyRequest<Request>, @Headers('stripe-signature') signature: string, @Res() res: Response) {
+  async handleWebhook(@Req() request: RawBodyRequest<Request>, @Res() res: Response) {
     try {
-      const event = this.stripeService.constructWebhookEvent(request.rawBody, signature);
+      const signature = request.headers['stripe-signature'];
+      const event = await this.stripeService.constructWebhookEvent(request.body, signature);
       const result = await this.paymentService.handleWebhookEvent(event);
       return this.responseSuccess(res, result);
     } catch (error) {

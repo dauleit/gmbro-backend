@@ -1,139 +1,230 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import axios, { AxiosInstance } from 'axios';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface CreateTransferDto {
   amount: number;
   destinationAddress: string;
   userId: string;
+  transactionId: string;
 }
 
 export interface TransferResult {
   id: string;
-  challengeId: string;
   status: string;
+  transactionHash?: string;
+  error?: string;
 }
 
-export interface CompleteTransferResult {
+export interface RecipientAddress {
   id: string;
-  status: string;
-  transactionHash: string;
+  address: string;
+  addressTag?: string;
+  currency: string;
+  chain: string;
+  description?: string;
 }
 
 @Injectable()
 export class CircleService {
+  private readonly httpClient: AxiosInstance;
   private readonly logger = new Logger(CircleService.name);
-  private readonly apiKey: string;
-  private readonly baseUrl: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.apiKey = this.configService.get<string>('CIRCLE_API_KEY');
-    this.baseUrl = this.configService.get<string>('CIRCLE_API_URL') || 'https://api-sandbox.circle.com';
+    const apiKey = this.configService.get<string>('CIRCL_API_SANDBOX_KEY');
 
-    if (!this.apiKey) {
-      throw new Error('CIRCLE_API_KEY is not configured');
+    if (!apiKey) {
+      throw new Error('CIRCL_API_SANDBOX_KEY is not configured');
     }
+
+    this.httpClient = axios.create({
+      baseURL: 'https://api-sandbox.circle.com',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
   }
 
   async createTransfer(createTransferDto: CreateTransferDto): Promise<TransferResult> {
     try {
-      // Gọi Circle API để tạo transfer
-      const response = await fetch(`${this.baseUrl}/v1/transfers`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          source: {
-            type: 'wallet',
-            id: createTransferDto.userId // ID của user's wallet
-          },
-          destination: {
-            type: 'blockchain',
-            address: createTransferDto.destinationAddress,
-            chain: 'ETH' // Ethereum mainnet
-          },
-          amount: {
-            amount: createTransferDto.amount.toString(),
-            currency: 'USD'
-          },
-          idempotencyKey: `transfer_${Date.now()}_${createTransferDto.userId}`
-        })
-      });
+      this.logger.log(`Creating USDC transfer for transaction: ${createTransferDto.transactionId}`);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Circle API error: ${errorData.message || response.statusText}`);
+      // Step 1: Get or create recipient address
+      const recipientAddress = await this.getOrCreateRecipientAddress(createTransferDto.destinationAddress);
+
+      if (!recipientAddress) {
+        throw new Error('Failed to get or create recipient address');
       }
 
-      const transferData = await response.json();
-
-      this.logger.log(`Created Circle transfer: ${transferData.data.id}`);
-
-      return {
-        id: transferData.data.id,
-        challengeId: transferData.data.challengeId,
-        status: transferData.data.status
-      };
-    } catch (error) {
-      this.logger.error('Error creating Circle transfer:', error);
-      throw error;
-    }
-  }
-
-  async completeTransfer(transferId: string, signature: string): Promise<CompleteTransferResult> {
-    try {
-      // Gọi Circle API để hoàn tất transfer
-      const response = await fetch(`${this.baseUrl}/v1/transfers/${transferId}/complete`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
+      // Step 2: Create business account transfer with correct payload format
+      const transferData = {
+        idempotencyKey: uuidv4(),
+        amount: {
+          amount: createTransferDto.amount.toString(),
+          currency: 'USD'
         },
-        body: JSON.stringify({
-          challengeId: signature
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Circle API error: ${errorData.message || response.statusText}`);
-      }
-
-      const completeData = await response.json();
-
-      this.logger.log(`Completed Circle transfer: ${transferId}`);
-
-      return {
-        id: completeData.data.id,
-        status: completeData.data.status,
-        transactionHash: completeData.data.transactionHash
-      };
-    } catch (error) {
-      this.logger.error('Error completing Circle transfer:', error);
-      throw error;
-    }
-  }
-
-  async getTransferStatus(transferId: string) {
-    try {
-      const response = await fetch(`${this.baseUrl}/v1/transfers/${transferId}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`
+        destination: {
+          type: 'verified_blockchain',
+          addressId: recipientAddress.id
         }
-      });
+      };
+      const response = await this.httpClient.post('/v1/businessAccount/transfers', transferData);
+      return {
+        id: response.data.data.id,
+        status: response.data.data.status
+      };
+    } catch (error) {
+      this.logger.error('Error creating USDC transfer:', error);
+      return {
+        id: '',
+        status: 'failed',
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Circle API error: ${errorData.message || response.statusText}`);
+  private async getOrCreateRecipientAddress(destinationAddress: string): Promise<RecipientAddress | null> {
+    try {
+      // Step 1: Try to get existing recipient address
+      const existingAddress = await this.getRecipientAddress(destinationAddress);
+
+      if (existingAddress) {
+        this.logger.log(`Found existing recipient address: ${existingAddress.id}`);
+        return existingAddress;
       }
 
-      const transferData = await response.json();
-      return transferData.data;
+      // Step 2: Create new recipient address if not exists
+      this.logger.log(`Creating new recipient address for: ${destinationAddress}`);
+      const newAddress = await this.createRecipientAddress(destinationAddress);
+
+      if (newAddress) {
+        this.logger.log(`Created new recipient address: ${newAddress.id}`);
+        return newAddress;
+      }
+
+      return null;
+    } catch (error) {
+      this.logger.error('Error in getOrCreateRecipientAddress:', error);
+      return null;
+    }
+  }
+
+  private async getRecipientAddress(destinationAddress: string): Promise<RecipientAddress | null> {
+    try {
+      // Get all recipient addresses
+      const response = await this.httpClient.get('/v1/businessAccount/wallets/addresses/recipient');
+
+      if (response.data.data && Array.isArray(response.data.data)) {
+        // Find address by destination address
+        const recipientAddress = response.data.data.find((addr: any) => addr.address === destinationAddress && addr.currency === 'USD');
+
+        if (recipientAddress) {
+          return {
+            id: recipientAddress.id,
+            address: recipientAddress.address,
+            addressTag: recipientAddress.addressTag,
+            currency: recipientAddress.currency,
+            chain: recipientAddress.chain,
+            description: recipientAddress.description
+          };
+        }
+      }
+
+      return null;
+    } catch (error) {
+      this.logger.error('Error getting recipient address:', error);
+      return null;
+    }
+  }
+
+  private async createRecipientAddress(destinationAddress: string): Promise<RecipientAddress | null> {
+    try {
+      const addressData = {
+        currency: 'USD',
+        chain: 'ETH',
+        address: destinationAddress,
+        addressTag: null,
+        description: `User wallet address for USDC transfers`
+      };
+
+      const response = await this.httpClient.post('/v1/businessAccount/wallets/addresses/recipient', addressData);
+
+      if (response.data.data) {
+        return {
+          id: response.data.data.id,
+          address: response.data.data.address,
+          addressTag: response.data.data.addressTag,
+          currency: response.data.data.currency,
+          chain: response.data.data.chain,
+          description: response.data.data.description
+        };
+      }
+
+      return null;
+    } catch (error) {
+      this.logger.error('Error creating recipient address:', error);
+      return null;
+    }
+  }
+
+  async getTransferStatus(transferId: string): Promise<TransferResult> {
+    try {
+      const response = await this.httpClient.get(`/v1/businessAccount/transfers/${transferId}`);
+      return {
+        id: response.data.data.id,
+        status: response.data.data.status,
+        transactionHash: response.data.data?.transactionHash
+      };
     } catch (error) {
       this.logger.error('Error getting transfer status:', error);
-      throw error;
+      return {
+        id: transferId,
+        status: 'unknown',
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  async getBusinessWalletBalance(): Promise<number> {
+    try {
+      const walletId = this.configService.get<string>('CIRCLE_BUSINESS_WALLET_ID');
+      if (!walletId) {
+        throw new Error('CIRCLE_BUSINESS_WALLET_ID not configured');
+      }
+
+      const response = await this.httpClient.get(`/v1/wallets/${walletId}`);
+      const balances = response.data.data.balances;
+
+      // Find USD balance
+      const usdBalance = balances?.find((balance: any) => balance.currency === 'USD');
+      return parseFloat(usdBalance?.amount || '0');
+    } catch (error) {
+      this.logger.error('Error getting business wallet balance:', error);
+      return 0;
+    }
+  }
+
+  async getRecipientAddresses(): Promise<RecipientAddress[]> {
+    try {
+      const response = await this.httpClient.get('/v1/businessAccount/wallets/addresses/recipient');
+
+      if (response.data.data && Array.isArray(response.data.data)) {
+        return response.data.data.map((addr: any) => ({
+          id: addr.id,
+          address: addr.address,
+          addressTag: addr.addressTag,
+          currency: addr.currency,
+          chain: addr.chain,
+          description: addr.description
+        }));
+      }
+
+      return [];
+    } catch (error) {
+      this.logger.error('Error getting recipient addresses:', error);
+      return [];
     }
   }
 }

@@ -167,7 +167,6 @@ export class TokenController extends BaseController {
       const response = await this.tokenService.fetchAndSaveTokenFromCoinGecko(fetchTokenDto.coinId, fetchTokenDto.contractAddress);
       return this.responseCreated(res, response);
     } catch (error) {
-      console.log({ error });
       return this.responseError(res, error.response);
     }
   }

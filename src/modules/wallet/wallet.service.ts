@@ -69,7 +69,6 @@ export class WalletService {
         data: { wallet: savedWallet }
       };
     } catch (error) {
-      console.log(error);
       if (error instanceof BadRequestException) {
         throw error;
       }
@@ -109,7 +108,6 @@ export class WalletService {
       };
       return { message: ERROR_MESSAGES.common.SUCCESSFUL, data };
     } catch (error) {
-      console.log(error.response.data);
       throw new InternalServerErrorException({
         message: ERROR_MESSAGES.common.INTERNAL_SERVER_ERROR
       });

@@ -17,7 +17,6 @@ export class CoinGeckoService {
       const response = await firstValueFrom(this.httpService.get<ICoinGeckoRawResponse>(url));
       return this.transformToCamelCase(response.data);
     } catch (error) {
-      console.log(error);
       if (error.response?.status === 404) {
         throw new HttpException('Token not found', HttpStatus.NOT_FOUND);
       }

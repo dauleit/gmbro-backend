@@ -9,7 +9,10 @@ export enum TransactionStatus {
   COMPLETED = 'completed',
   FAILED = 'failed',
   CANCELLED = 'cancelled',
-  REFUNDED = 'refunded'
+  REFUNDED = 'refunded',
+  USDC_TRANSFERRING = 'usdc_transferring',
+  USDC_TRANSFERRED = 'usdc_transferred',
+  USDC_TRANSFER_FAILED = 'usdc_transfer_failed'
 }
 
 export enum TransactionType {
@@ -59,6 +62,18 @@ export class Transaction {
 
   @Prop()
   circleTransactionHash?: string;
+
+  @Prop()
+  circleTransferStatus?: string;
+
+  @Prop()
+  circleTransferError?: string;
+
+  @Prop()
+  usdcAmount?: number; // Amount in USDC (6 decimals)
+
+  @Prop()
+  usdcTransferFee?: number; // Transfer fee in USDC
 
   // Wallet information
   @Prop()
