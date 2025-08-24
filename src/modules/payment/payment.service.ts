@@ -106,13 +106,21 @@ export class PaymentService {
       }
 
       try {
-        const transferResult = await this.createUSDCTransfer(transaction, charge.amount / 100);
-        return this.handleTransferResult(transferResult, chargeId, charge.payment_intent as string, charge.amount / 100);
+        // const transferResult = await this.createUSDCTransfer(transaction, charge.amount / 100);
+        return this.handleTransferResult(
+          {
+            status: 'peding'
+          },
+          chargeId,
+          charge.payment_intent as string,
+          charge.amount / 100
+        );
       } catch (transferError) {
         await this.handleTransferFailure(transaction._id, transferError.message);
         return this.createFailureResponse(chargeId, charge.payment_intent as string, charge.amount / 100, 'USDC transfer creation failed');
       }
     } catch (error) {
+      console.log({ error: error.response.data });
       this.logger.error('Error handling payment success:', error);
       if (error instanceof BadRequestException || error instanceof NotFoundException) {
         throw error;
@@ -133,7 +141,15 @@ export class PaymentService {
         'payment_intent.canceled': () => this.handlePaymentCanceled(event.data.object.id),
         'checkout.session.expired': () => this.handleCheckoutExpired(event.data.object.id)
       };
-
+      if (event.type === 'charge.updated') {
+        return {
+          message: ERROR_MESSAGES.common.SUCCESSFUL,
+          data: {
+            event: event.type,
+            status: 'unhandled'
+          }
+        };
+      }
       const handler = eventHandlers[event.type];
       if (handler) {
         return await handler();

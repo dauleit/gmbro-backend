@@ -1,8 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import mongoose from 'mongoose';
+
+mongoose.set('debug', false);
 
 export type WalletDocument = Wallet & Document;
-
 @Schema({ timestamps: true })
 export class Wallet {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })

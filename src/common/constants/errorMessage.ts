@@ -145,6 +145,31 @@ export const ERROR_MESSAGES = {
       message: 'WALLET_IS_NOT_CREATED',
       status: 400,
       code: 'WALLET_IS_NOT_CREATED'
+    },
+    WALLET_NOT_FOUND_IN_CIRCLE: {
+      message: 'WALLET_NOT_FOUND_IN_CIRCLE',
+      status: 404,
+      code: 'WALLET_NOT_FOUND_IN_CIRCLE'
+    },
+    REFRESH_BALANCE_FAILED: {
+      message: 'REFRESH_BALANCE_FAILED',
+      status: 500,
+      code: 'REFRESH_BALANCE_FAILED'
+    },
+    GET_BALANCE_FAILED: {
+      message: 'GET_BALANCE_FAILED',
+      status: 500,
+      code: 'GET_BALANCE_FAILED'
+    },
+    GET_TRANSACTIONS_FAILED: {
+      message: 'GET_TRANSACTIONS_FAILED',
+      status: 500,
+      code: 'GET_TRANSACTIONS_FAILED'
+    },
+    GET_WALLET_DETAILS_FAILED: {
+      message: 'GET_WALLET_DETAILS_FAILED',
+      status: 500,
+      code: 'GET_WALLET_DETAILS_FAILED'
     }
   }
 };

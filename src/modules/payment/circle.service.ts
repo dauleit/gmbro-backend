@@ -70,12 +70,15 @@ export class CircleService {
           addressId: recipientAddress.id
         }
       };
+
+      console.log(transferData);
       const response = await this.httpClient.post('/v1/businessAccount/transfers', transferData);
       return {
         id: response.data.data.id,
         status: response.data.data.status
       };
     } catch (error) {
+      console.log({ error: error.response.data });
       this.logger.error('Error creating USDC transfer:', error);
       return {
         id: '',
@@ -89,7 +92,7 @@ export class CircleService {
     try {
       // Step 1: Try to get existing recipient address
       const existingAddress = await this.getRecipientAddress(destinationAddress);
-
+      console.log({ existingAddress });
       if (existingAddress) {
         this.logger.log(`Found existing recipient address: ${existingAddress.id}`);
         return existingAddress;
@@ -98,7 +101,7 @@ export class CircleService {
       // Step 2: Create new recipient address if not exists
       this.logger.log(`Creating new recipient address for: ${destinationAddress}`);
       const newAddress = await this.createRecipientAddress(destinationAddress);
-
+      console.log({ newAddress });
       if (newAddress) {
         this.logger.log(`Created new recipient address: ${newAddress.id}`);
         return newAddress;
@@ -115,7 +118,7 @@ export class CircleService {
     try {
       // Get all recipient addresses
       const response = await this.httpClient.get('/v1/businessAccount/wallets/addresses/recipient');
-
+      console.log({ addresses: response.data.data, destinationAddress });
       if (response.data.data && Array.isArray(response.data.data)) {
         // Find address by destination address
         const recipientAddress = response.data.data.find((addr: any) => addr.address === destinationAddress && addr.currency === 'USD');
@@ -134,6 +137,7 @@ export class CircleService {
 
       return null;
     } catch (error) {
+      console.log({ error: error.response.data });
       this.logger.error('Error getting recipient address:', error);
       return null;
     }
@@ -146,11 +150,13 @@ export class CircleService {
         chain: 'ETH',
         address: destinationAddress,
         addressTag: null,
-        description: `User wallet address for USDC transfers`
+        description: `User wallet address for USDC transfers`,
+        idempotencyKey: uuidv4(),
+        owner: 'non_customer_entity'
       };
-
+      console.log({ addressData });
       const response = await this.httpClient.post('/v1/businessAccount/wallets/addresses/recipient', addressData);
-
+      console.log({ address: response.data.data });
       if (response.data.data) {
         return {
           id: response.data.data.id,
@@ -164,6 +170,7 @@ export class CircleService {
 
       return null;
     } catch (error) {
+      console.log({ error: error.response.data });
       this.logger.error('Error creating recipient address:', error);
       return null;
     }

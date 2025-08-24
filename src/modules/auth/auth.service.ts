@@ -272,7 +272,6 @@ export class AuthService {
         // Update user info if needed (avatar, email, etc.)
         const updateData: any = {};
         const userWallet = await this.walletService.findByUser(existingUser._id.toString());
-
         if (!userWallet) {
           const circleUserId = crypto.randomUUID();
           await circleUserSdk.createUser({ userId: circleUserId });

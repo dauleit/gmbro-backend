@@ -1,5 +1,5 @@
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { Controller, Logger, Post, Get, Res, UseGuards } from '@nestjs/common';
+import { Controller, Logger, Post, Get, Res, UseGuards, Param, Query } from '@nestjs/common';
 import { Response } from 'express';
 
 import { WalletService } from './wallet.service';
@@ -52,6 +52,46 @@ export class WalletController extends BaseController {
   async getMyWallet(@CurrentUser() user: IUser, @Res() res: Response) {
     try {
       const response = await this.walletService.getMyWallet(user);
+      return this.responseSuccess(res, response);
+    } catch (error) {
+      console.log(error);
+      return this.responseError(res, error.response);
+    }
+  }
+
+  @Get('/balance/:currency')
+  @ApiOperation({ summary: 'Get wallet balance for specific currency' })
+  @ApiResponse({ status: 200, description: 'Balance retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Wallet not found' })
+  async getWalletBalanceByCurrency(@CurrentUser() user: IUser, @Res() res: Response, @Param('currency') currency: string) {
+    try {
+      const response = await this.walletService.getWalletBalanceByCurrency(user, currency);
+      return this.responseSuccess(res, response);
+    } catch (error) {
+      return this.responseError(res, error.response);
+    }
+  }
+
+  @Get('/transactions')
+  @ApiOperation({ summary: 'Get wallet transaction history' })
+  @ApiResponse({ status: 200, description: 'Transactions retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Wallet not found' })
+  async getWalletTransactions(@CurrentUser() user: IUser, @Res() res: Response, @Query('limit') limit?: number) {
+    try {
+      const response = await this.walletService.getWalletTransactions(user, limit);
+      return this.responseSuccess(res, response);
+    } catch (error) {
+      return this.responseError(res, error.response);
+    }
+  }
+
+  @Get('/details')
+  @ApiOperation({ summary: 'Get detailed wallet information from Circle' })
+  @ApiResponse({ status: 200, description: 'Wallet details retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Wallet not found' })
+  async getWalletDetails(@CurrentUser() user: IUser, @Res() res: Response) {
+    try {
+      const response = await this.walletService.getWalletDetails(user);
       return this.responseSuccess(res, response);
     } catch (error) {
       return this.responseError(res, error.response);
