@@ -164,6 +164,7 @@ export class TokenController extends BaseController {
   @ApiResponse({ status: 400, description: 'Bad request - token already exists or fetch failed' })
   async fetchFromCoinGecko(@Body() fetchTokenDto: FetchTokenDto, @Res() res: Response) {
     try {
+      console.log(fetchTokenDto);
       const response = await this.tokenService.fetchAndSaveTokenFromCoinGecko(fetchTokenDto.coinId, fetchTokenDto.contractAddress);
       return this.responseCreated(res, response);
     } catch (error) {

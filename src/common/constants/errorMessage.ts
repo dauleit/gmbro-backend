@@ -171,5 +171,42 @@ export const ERROR_MESSAGES = {
       status: 500,
       code: 'GET_WALLET_DETAILS_FAILED'
     }
+  },
+  dca: {
+    STRATEGY_NOT_FOUND: {
+      message: 'DCA strategy not found',
+      status: 404,
+      code: 'DCA_STRATEGY_NOT_FOUND'
+    },
+    CREATE_STRATEGY_FAILED: {
+      message: 'Failed to create DCA strategy',
+      status: 500,
+      code: 'DCA_CREATE_STRATEGY_FAILED'
+    },
+    UPDATE_STRATEGY_FAILED: {
+      message: 'Failed to update DCA strategy',
+      status: 500,
+      code: 'DCA_UPDATE_STRATEGY_FAILED'
+    },
+    DELETE_STRATEGY_FAILED: {
+      message: 'Failed to delete DCA strategy',
+      status: 500,
+      code: 'DCA_DELETE_STRATEGY_FAILED'
+    },
+    STRATEGY_HAS_PENDING_TRANSACTIONS: {
+      message: 'Cannot delete strategy with pending transactions',
+      status: 400,
+      code: 'DCA_STRATEGY_HAS_PENDING_TRANSACTIONS'
+    },
+    EXECUTION_FAILED: {
+      message: 'DCA execution failed',
+      status: 500,
+      code: 'DCA_EXECUTION_FAILED'
+    },
+    INSUFFICIENT_BALANCE: {
+      message: 'Insufficient USDC balance for DCA execution',
+      status: 400,
+      code: 'DCA_INSUFFICIENT_BALANCE'
+    }
   }
 };

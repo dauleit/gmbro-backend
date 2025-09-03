@@ -20,6 +20,7 @@ export class CoinGeckoService {
       if (error.response?.status === 404) {
         throw new HttpException('Token not found', HttpStatus.NOT_FOUND);
       }
+      console.log(error);
       throw new HttpException('Failed to fetch token data from CoinGecko', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }

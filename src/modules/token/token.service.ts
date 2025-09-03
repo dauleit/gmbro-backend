@@ -278,7 +278,6 @@ export class TokenService {
 
       // Fetch token data from CoinGecko
       const tokenData = await this.coinGeckoService.getTokenInfo(coinId, contractAddress);
-
       // Create token in database
       const token = new this.tokenModel({
         ...tokenData,
@@ -292,6 +291,7 @@ export class TokenService {
         data: { token: this.mapToResponse(savedToken) }
       };
     } catch (error) {
+      console.log(error);
       if (error instanceof BadRequestException) {
         throw error;
       }

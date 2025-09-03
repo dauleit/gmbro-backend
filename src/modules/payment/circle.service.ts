@@ -1,30 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
-import { v4 as uuidv4 } from 'uuid';
-
-export interface CreateTransferDto {
-  amount: number;
-  destinationAddress: string;
-  userId: string;
-  transactionId: string;
-}
-
-export interface TransferResult {
-  id: string;
-  status: string;
-  transactionHash?: string;
-  error?: string;
-}
-
-export interface RecipientAddress {
-  id: string;
-  address: string;
-  addressTag?: string;
-  currency: string;
-  chain: string;
-  description?: string;
-}
+import { circleUserSdk } from 'src/common/modules/circle/circle.service';
 
 @Injectable()
 export class CircleService {
@@ -47,191 +24,42 @@ export class CircleService {
     });
   }
 
-  async createTransfer(createTransferDto: CreateTransferDto): Promise<TransferResult> {
+  /**
+   * Get wallet balance from Circle
+   * Using the EXACT same logic as getMyWallet in wallet.service.ts
+   */
+  async getWalletBalance(userId: string, walletId: string): Promise<number> {
     try {
-      this.logger.log(`Creating USDC transfer for transaction: ${createTransferDto.transactionId}`);
+      this.logger.log(`Getting wallet balance for ${walletId} using Circle User SDK - same as getMyWallet`);
 
-      // Step 1: Get or create recipient address
-      const recipientAddress = await this.getOrCreateRecipientAddress(createTransferDto.destinationAddress);
+      // Apply the EXACT same logic as getMyWallet:
+      // 1. Create user token
+      const token = await circleUserSdk.createUserToken({ userId });
 
-      if (!recipientAddress) {
-        throw new Error('Failed to get or create recipient address');
+      // 2. Get wallet token balance using circleUserSdk
+      const walletTokenBalance = await circleUserSdk.getWalletTokenBalance({
+        userToken: token.data.userToken,
+        walletId: walletId
+      });
+
+      // 3. Extract USDC balance from tokenBalances - EXACT same logic
+      const usdcBalance = walletTokenBalance.data.tokenBalances.find((token) => token.token.symbol === 'USDC')?.amount;
+
+      if (usdcBalance) {
+        return parseFloat(usdcBalance);
       }
 
-      // Step 2: Create business account transfer with correct payload format
-      const transferData = {
-        idempotencyKey: uuidv4(),
-        amount: {
-          amount: createTransferDto.amount.toString(),
-          currency: 'USD'
-        },
-        destination: {
-          type: 'verified_blockchain',
-          addressId: recipientAddress.id
-        }
-      };
-
-      console.log(transferData);
-      const response = await this.httpClient.post('/v1/businessAccount/transfers', transferData);
-      return {
-        id: response.data.data.id,
-        status: response.data.data.status
-      };
+      // If no USDC balance found, return 0 (EXACT same as getMyWallet)
+      this.logger.warn(`No USDC balance found for wallet ${walletId}`);
+      return 0;
     } catch (error) {
-      console.log({ error: error.response.data });
-      this.logger.error('Error creating USDC transfer:', error);
-      return {
-        id: '',
-        status: 'failed',
-        error: error.response?.data?.message || error.message
-      };
-    }
-  }
+      this.logger.error('Failed to get wallet balance using Circle User SDK:', error);
 
-  private async getOrCreateRecipientAddress(destinationAddress: string): Promise<RecipientAddress | null> {
-    try {
-      // Step 1: Try to get existing recipient address
-      const existingAddress = await this.getRecipientAddress(destinationAddress);
-      console.log({ existingAddress });
-      if (existingAddress) {
-        this.logger.log(`Found existing recipient address: ${existingAddress.id}`);
-        return existingAddress;
-      }
-
-      // Step 2: Create new recipient address if not exists
-      this.logger.log(`Creating new recipient address for: ${destinationAddress}`);
-      const newAddress = await this.createRecipientAddress(destinationAddress);
-      console.log({ newAddress });
-      if (newAddress) {
-        this.logger.log(`Created new recipient address: ${newAddress.id}`);
-        return newAddress;
-      }
-
-      return null;
-    } catch (error) {
-      this.logger.error('Error in getOrCreateRecipientAddress:', error);
-      return null;
-    }
-  }
-
-  private async getRecipientAddress(destinationAddress: string): Promise<RecipientAddress | null> {
-    try {
-      // Get all recipient addresses
-      const response = await this.httpClient.get('/v1/businessAccount/wallets/addresses/recipient');
-      console.log({ addresses: response.data.data, destinationAddress });
-      if (response.data.data && Array.isArray(response.data.data)) {
-        // Find address by destination address
-        const recipientAddress = response.data.data.find((addr: any) => addr.address === destinationAddress && addr.currency === 'USD');
-
-        if (recipientAddress) {
-          return {
-            id: recipientAddress.id,
-            address: recipientAddress.address,
-            addressTag: recipientAddress.addressTag,
-            currency: recipientAddress.currency,
-            chain: recipientAddress.chain,
-            description: recipientAddress.description
-          };
-        }
-      }
-
-      return null;
-    } catch (error) {
-      console.log({ error: error.response.data });
-      this.logger.error('Error getting recipient address:', error);
-      return null;
-    }
-  }
-
-  private async createRecipientAddress(destinationAddress: string): Promise<RecipientAddress | null> {
-    try {
-      const addressData = {
-        currency: 'USD',
-        chain: 'ETH',
-        address: destinationAddress,
-        addressTag: null,
-        description: `User wallet address for USDC transfers`,
-        idempotencyKey: uuidv4(),
-        owner: 'non_customer_entity'
-      };
-      console.log({ addressData });
-      const response = await this.httpClient.post('/v1/businessAccount/wallets/addresses/recipient', addressData);
-      console.log({ address: response.data.data });
-      if (response.data.data) {
-        return {
-          id: response.data.data.id,
-          address: response.data.data.address,
-          addressTag: response.data.data.addressTag,
-          currency: response.data.data.currency,
-          chain: response.data.data.chain,
-          description: response.data.data.description
-        };
-      }
-
-      return null;
-    } catch (error) {
-      console.log({ error: error.response.data });
-      this.logger.error('Error creating recipient address:', error);
-      return null;
-    }
-  }
-
-  async getTransferStatus(transferId: string): Promise<TransferResult> {
-    try {
-      const response = await this.httpClient.get(`/v1/businessAccount/transfers/${transferId}`);
-      return {
-        id: response.data.data.id,
-        status: response.data.data.status,
-        transactionHash: response.data.data?.transactionHash
-      };
-    } catch (error) {
-      this.logger.error('Error getting transfer status:', error);
-      return {
-        id: transferId,
-        status: 'unknown',
-        error: error.response?.data?.message || error.message
-      };
-    }
-  }
-
-  async getBusinessWalletBalance(): Promise<number> {
-    try {
-      const walletId = this.configService.get<string>('CIRCLE_BUSINESS_WALLET_ID');
-      if (!walletId) {
-        throw new Error('CIRCLE_BUSINESS_WALLET_ID not configured');
-      }
-
-      const response = await this.httpClient.get(`/v1/wallets/${walletId}`);
-      const balances = response.data.data.balances;
-
-      // Find USD balance
-      const usdBalance = balances?.find((balance: any) => balance.currency === 'USD');
-      return parseFloat(usdBalance?.amount || '0');
-    } catch (error) {
-      this.logger.error('Error getting business wallet balance:', error);
+      // Return 0 instead of mock data (EXACT same as getMyWallet)
       return 0;
     }
   }
 
-  async getRecipientAddresses(): Promise<RecipientAddress[]> {
-    try {
-      const response = await this.httpClient.get('/v1/businessAccount/wallets/addresses/recipient');
-
-      if (response.data.data && Array.isArray(response.data.data)) {
-        return response.data.data.map((addr: any) => ({
-          id: addr.id,
-          address: addr.address,
-          addressTag: addr.addressTag,
-          currency: addr.currency,
-          chain: addr.chain,
-          description: addr.description
-        }));
-      }
-
-      return [];
-    } catch (error) {
-      this.logger.error('Error getting recipient addresses:', error);
-      return [];
-    }
-  }
+  // All smart contract related logic has been removed
+  // CircleService now only handles wallet balance functionality
 }
