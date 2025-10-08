@@ -97,4 +97,30 @@ export class WalletController extends BaseController {
       return this.responseError(res, error.response);
     }
   }
+
+  @Get('/token-balances')
+  @ApiOperation({ summary: 'Get wallet token balance from Circle' })
+  @ApiResponse({ status: 200, description: 'Token balance retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Wallet not found' })
+  async getWalletTokenBalance(@CurrentUser() user: IUser, @Res() res: Response) {
+    try {
+      const response = await this.walletService.getWalletTokenBalance(user);
+      return this.responseSuccess(res, response);
+    } catch (error) {
+      return this.responseError(res, error.response);
+    }
+  }
+
+  @Get('/user-token')
+  @ApiOperation({ summary: 'Get user token from Circle' })
+  @ApiResponse({ status: 200, description: 'User token retrieved successfully' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async getUserToken(@CurrentUser() user: IUser, @Res() res: Response) {
+    try {
+      const response = await this.walletService.getUserToken(user);
+      return this.responseSuccess(res, response);
+    } catch (error) {
+      return this.responseError(res, error.response);
+    }
+  }
 }

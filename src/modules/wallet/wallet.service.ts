@@ -69,7 +69,7 @@ export class WalletService {
       // Create wallet data to save in database
       const walletData = {
         state: firstWallet.state,
-        walletSetId: firstWallet.walletSetId,
+        walletSetId: firstWallet.id,
         custodyType: firstWallet.custodyType,
         user: user._id,
         address: firstWallet.address,
@@ -135,7 +135,7 @@ export class WalletService {
       const userData = await this.userService.findOneById(user.id);
       const circleUser = await circleUserSdk.createUserPinWithWallets({
         userToken: userData.circleUserToken,
-        blockchains: [circleBlockchain.ethSepolia],
+        blockchains: [this.configService.get('NODE_ENV') === 'develop' ? circleBlockchain.ethSepolia : circleBlockchain.base],
         accountType: circleAccountType.sca
       });
 
@@ -172,7 +172,6 @@ export class WalletService {
       const circleWallets = await circleUserSdk.listWallets({
         userId: circleUserId
       });
-      console.log(circleWallets.data);
       if (circleWallets.data && circleWallets.data.wallets && circleWallets.data.wallets.length > 0) {
         return circleWallets.data.wallets[0] as ICircleWallet;
       }
@@ -318,6 +317,80 @@ export class WalletService {
       }
       throw new InternalServerErrorException({
         message: ERROR_MESSAGES.wallet.GET_WALLET_DETAILS_FAILED
+      });
+    }
+  }
+
+  async findByCircleWalletId(circleWalletId: string): Promise<IWallet | null> {
+    return this.walletModel.findOne({ walletSetId: circleWalletId }).exec();
+  }
+
+  /**
+   * Get wallet token balance from Circle
+   * @param user - Current user
+   * @returns Promise<IResponseData> - Wallet token balance response
+   */
+  async getWalletTokenBalance(user: IUser): Promise<IResponseData> {
+    try {
+      const wallet = await this.walletModel.findOne({ user: user._id });
+
+      if (!wallet) {
+        throw new NotFoundException({
+          message: ERROR_MESSAGES.wallet.WALLET_NOT_FOUND
+        });
+      }
+
+      // Get user token
+      const token = await circleUserSdk.createUserToken({ userId: user.circleUserId });
+
+      // Get wallet token balance from Circle
+      const walletTokenBalance = await circleUserSdk.getWalletTokenBalance({
+        userToken: token.data.userToken,
+        walletId: wallet.walletSetId
+      });
+
+      return {
+        message: ERROR_MESSAGES.common.SUCCESSFUL,
+        data: {
+          walletId: wallet.walletSetId,
+          tokenBalances: walletTokenBalance.data.tokenBalances
+        }
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error('Failed to get wallet token balance:', error);
+      throw new InternalServerErrorException({
+        message: ERROR_MESSAGES.common.INTERNAL_SERVER_ERROR
+      });
+    }
+  }
+
+  /**
+   * Get user token from Circle
+   * @param user - Current user
+   * @returns Promise<IResponseData> - User token response
+   */
+  async getUserToken(user: IUser): Promise<IResponseData> {
+    try {
+      this.logger.log(`Getting user token for user ${user.id}`);
+
+      // Get user token from Circle
+      const userToken = await circleUserSdk.createUserToken({ userId: user.circleUserId });
+
+      return {
+        message: ERROR_MESSAGES.common.SUCCESSFUL,
+        data: {
+          userToken: userToken.data.userToken,
+          userEncryptionKey: userToken.data.encryptionKey,
+          userId: user.circleUserId
+        }
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get user token for user ${user.id}:`, error);
+      throw new InternalServerErrorException({
+        message: ERROR_MESSAGES.common.INTERNAL_SERVER_ERROR
       });
     }
   }

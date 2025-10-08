@@ -49,9 +49,9 @@ export class AuthService {
     let socialUser: SocialUser;
 
     switch (socialLoginDto.provider) {
-      case SocialProvider.TELEGRAM:
-        socialUser = await this.validateTelegramLogin(socialLoginDto.data as TelegramLoginDto);
-        break;
+      // case SocialProvider.TELEGRAM:
+      //   socialUser = await this.validateTelegramLogin(socialLoginDto.data as TelegramLoginDto);
+      //   break;
 
       case SocialProvider.X:
         const xData = socialLoginDto.data as XLoginDto;
@@ -98,51 +98,51 @@ export class AuthService {
     };
   }
 
-  async validateTelegramLogin(telegramData: TelegramUser): Promise<SocialUser> {
-    try {
-      // Verify Telegram data hash
-      const botToken = this.configService.get('TELEGRAM_BOT_TOKEN');
-      if (!botToken) {
-        throw new BadRequestException('Telegram bot token not configured');
-      }
+  // async validateTelegramLogin(telegramData: TelegramUser): Promise<SocialUser> {
+  //   try {
+  //     // Verify Telegram data hash
+  //     const botToken = this.configService.get('TELEGRAM_BOT_TOKEN');
+  //     if (!botToken) {
+  //       throw new BadRequestException('Telegram bot token not configured');
+  //     }
 
-      const dataCheckString = Object.keys(telegramData)
-        .filter((key) => key !== 'hash')
-        .sort()
-        .map((key) => `${key}=${telegramData[key]}`)
-        .join('\n');
+  //     const dataCheckString = Object.keys(telegramData)
+  //       .filter((key) => key !== 'hash')
+  //       .sort()
+  //       .map((key) => `${key}=${telegramData[key]}`)
+  //       .join('\n');
 
-      const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
-      const hash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+  //     const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
+  //     const hash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
-      if (hash !== telegramData.hash) {
-        throw new UnauthorizedException({
-          message: ERROR_MESSAGES.auth.INVALID_TELEGRAM_DATA_HASH
-        });
-      }
+  //     if (hash !== telegramData.hash) {
+  //       throw new UnauthorizedException({
+  //         message: ERROR_MESSAGES.auth.INVALID_TELEGRAM_DATA_HASH
+  //       });
+  //     }
 
-      // Check if authDate is not too old (within 1 hour)
-      const authDate = parseInt(telegramData.authDate);
-      const currentTime = Math.floor(Date.now() / 1000);
-      if (currentTime - authDate > 3600) {
-        throw new UnauthorizedException({
-          message: ERROR_MESSAGES.auth.TELEGRAM_AUTH_DATA_EXPIRED
-        });
-      }
+  //     // Check if authDate is not too old (within 1 hour)
+  //     const authDate = parseInt(telegramData.authDate);
+  //     const currentTime = Math.floor(Date.now() / 1000);
+  //     if (currentTime - authDate > 3600) {
+  //       throw new UnauthorizedException({
+  //         message: ERROR_MESSAGES.auth.TELEGRAM_AUTH_DATA_EXPIRED
+  //       });
+  //     }
 
-      return {
-        id: telegramData.id,
-        firstName: telegramData.firstName,
-        lastName: telegramData.lastName,
-        avatar: telegramData.photoUrl,
-        provider: SocialProvider.TELEGRAM,
-        providerId: telegramData.id
-      };
-    } catch (error) {
-      this.logger.error('Telegram validation failed:', error);
-      throw error;
-    }
-  }
+  //     return {
+  //       id: telegramData.id,
+  //       firstName: telegramData.firstName,
+  //       lastName: telegramData.lastName,
+  //       avatar: telegramData.photoUrl,
+  //       provider: SocialProvider.TELEGRAM,
+  //       providerId: telegramData.id
+  //     };
+  //   } catch (error) {
+  //     this.logger.error('Telegram validation failed:', error);
+  //     throw error;
+  //   }
+  // }
 
   async validateXLogin(code: string): Promise<SocialUser> {
     try {
@@ -305,7 +305,6 @@ export class AuthService {
       const circleUserToken = await circleUserSdk.createUserToken({ userId: circleUserId });
       const userToken = circleUserToken.data.userToken;
       const encryptionKey = circleUserToken.data.encryptionKey;
-
       // Create new user
       const createUserDto = {
         firstName: socialUser.firstName,

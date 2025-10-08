@@ -14,8 +14,11 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { TokenModule } from './modules/token/token.module';
 import { AwsModule } from './modules/aws/aws.module';
-import { PaymentModule } from './modules/payment/payment.module';
 import { WalletModule } from './modules/wallet/wallet.module';
+import { CardsModule } from './modules/cards/cards.module';
+import { TransactionModule } from './modules/transaction/transaction.module';
+import { TransferModule } from './modules/transfer/transfer.module';
+import { DCAPlanModule } from './modules/dca-plan/dca-plan.module';
 
 @Module({
   imports: [
@@ -57,8 +60,11 @@ import { WalletModule } from './modules/wallet/wallet.module';
     UserModule,
     TokenModule,
     AwsModule,
-    PaymentModule,
-    WalletModule
+    WalletModule,
+    CardsModule,
+    TransactionModule,
+    TransferModule,
+    DCAPlanModule
   ],
   controllers: [AppController],
   providers: [ConfigService, AppService, AppSocketGateway]

@@ -174,39 +174,49 @@ export const ERROR_MESSAGES = {
   },
   dca: {
     STRATEGY_NOT_FOUND: {
-      message: 'DCA strategy not found',
+      message: 'DCA_STRATEGY_NOT_FOUND',
       status: 404,
       code: 'DCA_STRATEGY_NOT_FOUND'
     },
     CREATE_STRATEGY_FAILED: {
-      message: 'Failed to create DCA strategy',
+      message: 'DCA_CREATE_STRATEGY_FAILED',
       status: 500,
       code: 'DCA_CREATE_STRATEGY_FAILED'
     },
     UPDATE_STRATEGY_FAILED: {
-      message: 'Failed to update DCA strategy',
+      message: 'DCA_UPDATE_STRATEGY_FAILED',
       status: 500,
       code: 'DCA_UPDATE_STRATEGY_FAILED'
     },
     DELETE_STRATEGY_FAILED: {
-      message: 'Failed to delete DCA strategy',
+      message: 'DCA_DELETE_STRATEGY_FAILED',
       status: 500,
       code: 'DCA_DELETE_STRATEGY_FAILED'
     },
     STRATEGY_HAS_PENDING_TRANSACTIONS: {
-      message: 'Cannot delete strategy with pending transactions',
+      message: 'DCA_STRATEGY_HAS_PENDING_TRANSACTIONS',
       status: 400,
       code: 'DCA_STRATEGY_HAS_PENDING_TRANSACTIONS'
     },
     EXECUTION_FAILED: {
-      message: 'DCA execution failed',
+      message: 'DCA_EXECUTION_FAILED',
       status: 500,
       code: 'DCA_EXECUTION_FAILED'
     },
     INSUFFICIENT_BALANCE: {
-      message: 'Insufficient USDC balance for DCA execution',
+      message: 'DCA_INSUFFICIENT_BALANCE',
       status: 400,
       code: 'DCA_INSUFFICIENT_BALANCE'
+    },
+    INVALID_TOTAL_TRADES: {
+      message: 'DCA_INVALID_TOTAL_TRADES',
+      status: 400,
+      code: 'INVALID_TOTAL_TRADES'
+    },
+    INVALID_UNIT_PER_TRADE: {
+      message: 'DCA_INVALID_UNIT_PER_TRADE',
+      status: 400,
+      code: 'INVALID_UNIT_PER_TRADE'
     }
   }
 };

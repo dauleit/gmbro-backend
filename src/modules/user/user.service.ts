@@ -7,6 +7,9 @@ import { CreateUserDto } from './dto/createUser.dto';
 import { UpdateUserDto } from './dto/updateUser.dto';
 import { QueryUserDto } from './dto/queryUser.dto';
 import { ConfigService } from 'src/configs/config.service';
+import { IResponseData } from 'src/base/base-controller';
+import { ERROR_MESSAGES } from 'src/common/constants/errorMessage';
+import { InternalServerErrorException } from 'src/common/exceptions/internal-server-error.exception';
 
 @Injectable()
 export class UserService {
@@ -44,6 +47,37 @@ export class UserService {
     } catch (error) {
       this.logger.error('Error creating user:', error);
       throw new BadRequestException('Failed to create user');
+    }
+  }
+
+  async findByCircleUserId(circleUserId: string): Promise<IUser | null> {
+    return this.userModel.findOne({ circleUserId }).exec();
+  }
+
+  async getUserProfile(userId: string): Promise<IResponseData> {
+    try {
+      this.logger.log(`Getting user profile for: ${userId}`);
+
+      const user = await this.userModel.findById(userId).select('-password').lean();
+
+      if (!user) {
+        throw new NotFoundException({
+          message: ERROR_MESSAGES.user.USER_NOT_FOUND
+        });
+      }
+
+      return {
+        message: ERROR_MESSAGES.common.SUCCESSFUL,
+        data: { user }
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error('Error getting user profile:', error);
+      throw new InternalServerErrorException({
+        message: ERROR_MESSAGES.common.INTERNAL_SERVER_ERROR
+      });
     }
   }
 }
